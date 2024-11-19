@@ -18,7 +18,11 @@ export class AppController {
     @Post(':symbol')
     async initStockCheck(@Param('symbol') symbol: string): Promise<any> {
         try {
-            return this.appService.addInterval(symbol);
+            await this.appService.addInterval(symbol);
+            return {
+                statusCode: 200,
+                message: `[${symbol}] periodic update added.`
+            };
         } catch (error) {
             throw new HttpException(error.message, error.getStatus ?? HttpStatus.INTERNAL_SERVER_ERROR);
         }

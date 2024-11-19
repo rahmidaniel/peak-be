@@ -40,8 +40,7 @@ export class AppService implements OnModuleDestroy {
             this.observedSymbols.set(symbol, new QuoteQueue(this.configService.smaRange));
         }
 
-        this.addInterval(symbol); // TODO: remove if not needed, task description didn't specify whether to also init the periodic check here (makes it comfy though)
-
+        this.logger.log(`[${symbol}] fetched new quote`);
         return this.observedSymbols.get(symbol).updateQueue(data);
     }
 
@@ -61,20 +60,17 @@ export class AppService implements OnModuleDestroy {
     }
 
     async addInterval(symbol: string, interval?: number): Promise<void> {
-        if (this.schedulerRegistry.doesExist('interval', symbol)) {
-            return;
-        }
+        return new Promise<void>((resolve, reject) => {
+            if (this.schedulerRegistry.doesExist('interval', symbol)) {
+                return reject(new Error(`[${symbol}] interval already exists`));
+            }
 
-        interval = interval ?? this.configService.fetchInterval;
+            interval = interval ?? this.configService.fetchInterval;
 
-        this.schedulerRegistry.addInterval(symbol,
-            setInterval(() => {
-                    this.getQuote(symbol);
-                    this.logger.warn(`[${symbol}] interval added, executing at time (${interval})`);
-                },
-                interval
-            )
-        );
+            this.schedulerRegistry.addInterval(symbol, setInterval(() => this.getQuote(symbol), interval));
+            this.logger.warn(`[${symbol}] interval added, executing every ${interval}ms`)
+            resolve();
+        })
     }
 
     clearInterval(symbol: string): void {
